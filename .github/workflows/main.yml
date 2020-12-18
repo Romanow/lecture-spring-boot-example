@@ -1,0 +1,46 @@
+name: Build project
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+      - name: Build project
+        uses: eskatos/gradle-command-action@v1
+        with:
+          dependencies-cache-enabled: true
+          arguments: clean build jacocoTestReport
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: build/reports/jacoco/report.xml
+      - name: Deploy project
+        uses: akhileshns/heroku-deploy@v3.4.6
+        with:
+          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+          heroku_app_name: homework3-person-service
+          heroku_email: romanowalex@mail.ru
+      - name: Checkout test repository
+        uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.PRIVATE_ACCESS_TOKEN }}
+          repository: Romanow/homework3-testing
+          path: integration-tests
+          ref: master
+      - name: Run integration tests
+        uses: eskatos/gradle-command-action@v1
+        with:
+          build-root-directory: integration-tests
+          arguments: clean test -PtargetUrl=https://homework3-person-service.herokuapp.com
