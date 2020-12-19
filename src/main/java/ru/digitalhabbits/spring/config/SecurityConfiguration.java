@@ -29,7 +29,9 @@ public class SecurityConfiguration
                 .mvcMatchers("/users/**")
                 .hasAnyRole(CLIENT_ROLE)
                 .and()
-                .httpBasic();
+                .httpBasic()
+                .and()
+                .csrf().disable();
     }
 
     @Override
