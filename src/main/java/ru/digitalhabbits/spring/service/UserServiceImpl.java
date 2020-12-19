@@ -2,11 +2,12 @@ package ru.digitalhabbits.spring.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.digitalhabbits.spring.domain.User;
 import ru.digitalhabbits.spring.exceptions.UserNotFoundException;
 import ru.digitalhabbits.spring.model.CreateUserRequest;
 import ru.digitalhabbits.spring.model.UserInfoResponse;
-import ru.digitalhabbits.spring.repository.UserStorage;
+import ru.digitalhabbits.spring.repository.UserRepository;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -18,24 +19,27 @@ import static java.util.Optional.ofNullable;
 @RequiredArgsConstructor
 public class UserServiceImpl
         implements UserService {
-    private final UserStorage userStorage;
+    private final UserRepository userRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public List<UserInfoResponse> getAllUsers() {
-        return userStorage.getAllUsers()
+        return userRepository.findAll()
                 .stream()
                 .map(this::buildUserResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserInfoResponse getUserById(@Nonnull Integer id) {
-        final User user = userStorage.getUserById(id)
+        final User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User '" + id + "' not found"));
         return buildUserResponse(user);
     }
 
     @Override
+    @Transactional
     public UserInfoResponse createUser(@Nonnull CreateUserRequest request) {
         User user = new User()
                 .setAge(request.getAge())
@@ -43,14 +47,15 @@ public class UserServiceImpl
                 .setMiddleName(request.getMiddleName())
                 .setLastName(request.getLastName())
                 .setLogin(request.getLogin());
-        user = userStorage.createUser(user);
+        user = userRepository.save(user);
 
         return buildUserResponse(user);
     }
 
     @Override
+    @Transactional
     public UserInfoResponse editUser(@Nonnull Integer id, @Nonnull CreateUserRequest request) {
-        final User user = userStorage.getUserById(id)
+        final User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User '" + id + "' not found"));
         ofNullable(request.getAge()).map(user::setAge);
         ofNullable(request.getFirstName()).map(user::setFirstName);
@@ -58,14 +63,15 @@ public class UserServiceImpl
         ofNullable(request.getLastName()).map(user::setLastName);
         ofNullable(request.getLogin()).map(user::setLogin);
 
-        userStorage.update(user);
+        userRepository.save(user);
 
         return buildUserResponse(user);
     }
 
     @Override
+    @Transactional
     public void deleteUser(@Nonnull Integer id) {
-        userStorage.delete(id);
+        userRepository.deleteById(id);
     }
 
     @Nonnull
